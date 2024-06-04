@@ -1,0 +1,26 @@
+{
+	"id": "disguise-api",
+	"name": "disguise-rest-api",
+	"shortname": "disguise-api",
+	"description": "Disguise Rest API",
+	"version": "1.0.0",
+	"license": "MIT",
+	"repository": "git+https://github.com/bitfocus/companion-module-disguise-api.git",
+	"bugs": "https://github.com/bitfocus/companion-module-disguise-api/issues",
+	"maintainers": [
+		{
+			"name": "Ted Charles Brown",
+			"email": "Tedcharlesbrown@gmail.com"
+		}
+	],
+	"legacyIds": [],
+	"runtime": {
+		"type": "node18",
+		"api": "nodejs-ipc",
+		"apiVersion": "0.0.0",
+		"entrypoint": "../main.js"
+	},
+	"manufacturer": "Disguise",
+	"products": ["Rest API"],
+	"keywords": ["Media Server"]
+}
