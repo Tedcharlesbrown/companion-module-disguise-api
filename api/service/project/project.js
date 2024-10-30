@@ -12,8 +12,9 @@ export const PROJECT_FIELDS = {
         type: 'textinput',
         label: 'Project Path',
         id: 'projectPath',
-        default: '',
+        default: 'start//start.d3',
         regex: '/.*/',
+        tooltip: "Use double slashes to separate folders. Example: 'start//start.d3'",
         useVariables: true,
     },
     soloMode: {

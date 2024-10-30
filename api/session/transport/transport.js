@@ -127,7 +127,6 @@ export const TRANSPORT_ACTIONS = {
                     }
                 ]
             }
-            self.log('error', action.options.command)
             switch (action.options.command) {
                 case TRANSPORT_COMMANDS[0].id:
                     address = `${address}/gotonextsection`
@@ -190,7 +189,7 @@ export const TRANSPORT_ACTIONS = {
             await sendCommand(self, action, address, data)
         },
     },
-
+    
     post_transport_gotocue: {
         name: 'Transport: Go To',
         options: [
@@ -211,132 +210,108 @@ export const TRANSPORT_ACTIONS = {
             TRANSPORT_FIELDS.TRACK_GoToTarget,
         ],
         callback: async (action, context, self) => {
-            //SET INITIAL ADDRESS
-            let address = `/api/session/transport`
-            //SET INITIAL JSON OBJECT FOR KNOWN FIELDS - TRANSPORT NAME
-            let json = { transportName: action.options.player }
-            //PARSE THROUGH USER OPTIONS
-            switch (action.options.cueType) {
+            // Resolve Companion variables before using them
+            const cueType = action.options.cueType;
+            const tagType = action.options.tagType;
+            const allowGlobalJump = action.options.allowGlobalJump;
+            const ignoreTags = action.options.ignoreTags;
+            const timeType = action.options.timeType;
+            const playmode = action.options.playmode;
+            const player = await self.parseVariablesInString(action.options.player);
+            const cueTarget = await self.parseVariablesInString(action.options.cueTarget);
+            const midiTarget = await self.parseVariablesInString(action.options.midiTarget);
+            const timecodeTarget = await self.parseVariablesInString(action.options.timecodeTarget);
+            const noteTarget = await self.parseVariablesInString(action.options.noteTarget);
+            const sectionTarget = await self.parseVariablesInString(action.options.sectionTarget);
+            const timeTarget = await self.parseVariablesInString(action.options.timeTarget);
+            const frameTarget = await self.parseVariablesInString(action.options.frameTarget);
+    
+            // Set initial address
+            let address = `/api/session/transport`;
+            let json = { transportName: player };
+    
+            // Parse through user options
+            switch (cueType) {
                 case 'gototag':
-                    address = `${address}/gototag`
-                    json.type = action.options.tagType
-                    json.allowGlobalJump = action.options.allowGlobalJump
-                    switch (action.options.tagType) {
+                    address = `${address}/gototag`;
+                    json.type = tagType;
+                    json.allowGlobalJump = allowGlobalJump;
+                    switch (tagType) {
                         case 'CUE':
-                            json.value = action.options.cueTarget
-                            break
+                            json.value = cueTarget;
+                            break;
                         case 'MIDI':
-                            json.value = action.options.midiTarget
-                            break
+                            json.value = midiTarget;
+                            break;
                         case 'TC':
-                            json.value = action.options.timecodeTarget
-                            break
+                            json.value = timecodeTarget;
+                            break;
                         default:
-                            self.log('error', `Invalid tagType ${action.options.tagType}`)
-                            self.updateStatus(InstanceStatus.UnknownError, `Invalid tagType ${action.options.tagType}`)
-                            return
-                    }       
-                    break
+                            self.log('error', `Invalid tagType ${tagType}`);
+                            self.updateStatus(InstanceStatus.UnknownError, `Invalid tagType ${tagType}`);
+                            return;
+                    }
+                    break;
                 case 'gotonote':
-                    address = `${address}/gotonote`
-                    json.note = action.options.noteTarget
-                    break
+                    address = `${address}/gotonote`;
+                    json.note = noteTarget;
+                    break;
                 case 'gotosection':
-                    address = `${address}/gotosection`
-                    json.section = action.options.sectionTarget
-                    break
+                    address = `${address}/gotosection`;
+                    json.section = sectionTarget;
+                    break;
                 case 'gototime':
-                    switch (action.options.timeType) {
+                    switch (timeType) {
                         case 'timecode':
-                            address = `${address}/gototimecode`
-                            json.timecode = action.options.timecodeTarget
-                            json.ignoreTags = action.options.ignoreTags
-                            break
+                            address = `${address}/gototimecode`;
+                            json.timecode = timecodeTarget;
+                            json.ignoreTags = ignoreTags;
+                            break;
                         case 'seconds':
-                            address = `${address}/gototime`
-                            json.time = action.options.timeTarget
-                            break
+                            address = `${address}/gototime`;
+                            json.time = timeTarget;
+                            break;
                         case 'frame':
-                            address = `${address}/gotoframe`
-                            json.frame = action.options.frameTarget
-                            break
+                            address = `${address}/gotoframe`;
+                            json.frame = frameTarget;
+                            break;
                         default:
-                            self.log('error', `Invalid timeType ${action.options.timeType}`)
-                            self.updateStatus(InstanceStatus.UnknownError, `Invalid timeType ${action.options.timeType}`)
-                            return
+                            self.log('error', `Invalid timeType ${timeType}`);
+                            self.updateStatus(InstanceStatus.UnknownError, `Invalid timeType ${timeType}`);
+                            return;
                     }
                     break;
                 default:
-                    self.log('error', `Invalid cueType ${action.options.cueType}`)
-                    self.updateStatus(InstanceStatus.UnknownError, `Invalid cueType ${action.options.cueType}`)
-                    return
+                    self.log('error', `Invalid cueType ${cueType}`);
+                    self.updateStatus(InstanceStatus.UnknownError, `Invalid cueType ${cueType}`);
+                    return;
             }
-            // CONVERT PLAYMODE TO INTEGER
-            let playmodeInt = 0
-            switch (action.options.playmode) {
+    
+            // Convert playmode to integer
+            let playmodeInt = 0;
+            switch (playmode) {
                 case PLAY_MODES[0].id:
-                    playmodeInt = 1
-                    break
+                    playmodeInt = 1;
+                    break;
                 case PLAY_MODES[1].id:
-                    playmodeInt = 2
-                    break
+                    playmodeInt = 2;
+                    break;
                 case PLAY_MODES[2].id:
-                    playmodeInt = 3
-                    break
+                    playmodeInt = 3;
+                    break;
                 case PLAY_MODES[3].id:
-                    playmodeInt = 4
-                    break
+                    playmodeInt = 4;
+                    break;
                 default:
-                    self.log('error', `Invalid playMode ${action.options.playmode}`)
-                    self.updateStatus(InstanceStatus.UnknownError, `Invalid playMode ${action.options.playmode}`)
-                    return
+                    self.log('error', `Invalid playMode ${playmode}`);
+                    self.updateStatus(InstanceStatus.UnknownError, `Invalid playMode ${playmode}`);
+                    return;
             }
+    
+            json.playmode = playmodeInt;
 
-            json.playmode = playmodeInt
-            await sendCommand(self, action, address, createTransportJSON(json))
+            await sendCommand(self, action, address, createTransportJSON(json));
+            self.log('info', `Sent go to command: Transport: ${player}, Type: ${cueType}, Target: ${cueTarget}`);
         }
-    },
-}
-/* -------------------------------------------------------------------------- */
-/*                                  VARIABLES                                 */
-/* -------------------------------------------------------------------------- */
-
-export async function fetchTransportVariableDefinitions(self) {
-    const activeTransportData = await getRequest(`http://${self.config.ipaddress}/api/session/transport/activetransport`)
-    const transports = activeTransportData.result
-    const variableDefinitions = []
-
-    transports.forEach((transport, index) => {
-        const transportIndex = index + 1
-        variableDefinitions.push(
-            { variableId: `transport${transportIndex}_name`, name: `Transport ${transportIndex} Name` },
-            { variableId: `transport${transportIndex}_engaged`, name: `Transport ${transportIndex} Engaged` },
-            { variableId: `transport${transportIndex}_volume`, name: `Transport ${transportIndex} Volume` },
-            { variableId: `transport${transportIndex}_brightness`, name: `Transport ${transportIndex} Brightness` },
-            { variableId: `transport${transportIndex}_playmode`, name: `Transport ${transportIndex} Play Mode` },
-            { variableId: `transport${transportIndex}_currentTrack`, name: `Transport ${transportIndex} Current Track` },
-            { variableId: `transport${transportIndex}_receivingTimecode`, name: `Transport ${transportIndex} Receiving Timecode` }
-        )
-    })
-
-    return variableDefinitions
-}
-
-export async function fetchTransportVariableValues(self) {
-    const activeTransportData = await getRequest(`http://${self.config.ipaddress}/api/session/transport/activetransport`)
-    const transports = activeTransportData.result
-    const variableValues = {}
-
-    transports.forEach((transport, index) => {
-        const transportIndex = index + 1
-        variableValues[`transport${transportIndex}_name`] = transport.name
-        variableValues[`transport${transportIndex}_engaged`] = transport.engaged
-        variableValues[`transport${transportIndex}_volume`] = transport.volume
-        variableValues[`transport${transportIndex}_brightness`] = transport.brightness
-        variableValues[`transport${transportIndex}_playmode`] = transport.playmode
-        variableValues[`transport${transportIndex}_currentTrack`] = transport.currentTrack ? transport.currentTrack.name : 'N/A'
-        variableValues[`transport${transportIndex}_receivingTimecode`] = transport.receivingTimecode
-    })
-
-    return variableValues
+    },   
 }

@@ -42,7 +42,7 @@ export const TRANSPORT_FIELDS = {
         type: 'dropdown',
         label: 'Command',
         id: 'command',
-        default: '',
+        default: 'nextsection',
         choices: TRANSPORT_COMMANDS
     },
 
@@ -76,6 +76,7 @@ export const TRANSPORT_FIELDS = {
         label: 'Allow Global Jump',
         id: 'allowGlobalJump',
         default: true,
+        tooltip: 'Careful! Disguise will use the crossfade time of the current section',
         isVisible: (options) => options.cueType === 'gototag'
     },
     // DROPDOWN FOR TAG TYPES
@@ -94,7 +95,7 @@ export const TRANSPORT_FIELDS = {
         id: 'cueTarget',
         default: '',
         isVisible: (options) => options.cueType === 'gototag' && options.tagType === 'CUE',
-        regex: '/^\\d*(\\.\\d+)?$/',
+        // regex: '/^\\d*(\\.\\d+)?$/',
         useVariables: true,
     },
     /* ------------------------------- GO TO MIDI ------------------------------- */
