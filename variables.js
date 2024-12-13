@@ -1,5 +1,6 @@
 import { fetchTransportVariableDefinitions, fetchTransportVariableValues } from './api/session/transport/transportVariables.js'
 import { fetchStatusVariableDefinitions, fetchStatusVariableValues} from './api/session/status/statusVariables.js'
+import { fetchRenderStreamVariableDefinitions } from './api/session/renderstream/renderstreamVariables.js'
 import { sendCommand, getRequest } from './globalFunctions.js'
 
 export async function request_api(self) {
