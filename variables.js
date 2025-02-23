@@ -3,12 +3,21 @@ import { fetchStatusVariableDefinitions, fetchStatusVariableValues} from './api/
 import { fetchRenderStreamVariableDefinitions } from './api/session/renderstream/renderstreamVariables.js'
 import { sendCommand, getRequest } from './globalFunctions.js'
 import { updateTransportChoices } from './api/session/transport/transport.js'
+import { fetchAnnotationVariableDefinitions, fetchAnnotationVariableValues } from './api/session/transport/annotationVariables.js'
 
 export async function request_api(self) {
 	self.status_health = await getRequest(`http://${self.config.ipaddress}/api/session/status/health`)
 	self.status_project = await getRequest(`http://${self.config.ipaddress}/api/session/status/project`)
 	self.transport_activetransport = await getRequest(`http://${self.config.ipaddress}/api/session/transport/activetransport`)
 	self.transport_tracks = await getRequest(`http://${self.config.ipaddress}/api/session/transport/tracks`)
+	
+	// Get annotations for all transports in one request
+	try {
+		self.transport_annotations = await getRequest(`http://${self.config.ipaddress}/api/session/transport/annotations`)
+	} catch (error) {
+		self.log('debug', `Failed to get annotations: ${error.message}`)
+		self.transport_annotations = { result: [] }
+	}
 	
 	// Update transport choices after getting new data
 	updateTransportChoices(self)
@@ -18,14 +27,16 @@ export async function defineVariables(self) {
 	await request_api(self)
 
 	try {
-		// Fetch both transport and status variable definitions
+		// Fetch variable definitions
 		const transportVariableDefinitions = await fetchTransportVariableDefinitions(self, [self.transport_activetransport, self.transport_tracks]);
 		const statusVariableDefinitions = await fetchStatusVariableDefinitions(self, [self.status_health, self.status_project]);
+		const annotationVariableDefinitions = await fetchAnnotationVariableDefinitions(self, self.transport_annotations);
 
-		// Merge the two sets of variable definitions
+		// Merge all variable definitions
 		const allVariableDefinitions = [
 			...transportVariableDefinitions,
-			...statusVariableDefinitions
+			...statusVariableDefinitions,
+			...annotationVariableDefinitions
 		];
 
 		// Set the merged variable definitions
@@ -37,14 +48,16 @@ export async function defineVariables(self) {
 
 export async function updateVariables(self) {
 	try {
-		// Fetch both transport and status variable values
+		// Fetch variable values
 		const transportVariableValues = await fetchTransportVariableValues(self, [self.transport_activetransport, self.transport_tracks]);
 		const statusVariableValues = await fetchStatusVariableValues(self, [self.status_health, self.status_project]);
+		const annotationVariableValues = await fetchAnnotationVariableValues(self, self.transport_annotations);
 
-		// Merge the variable values
+		// Merge all variable values
 		const allVariableValues = {
 			...transportVariableValues,
-			...statusVariableValues
+			...statusVariableValues,
+			...annotationVariableValues
 		};
 
 		// Set the merged variable values
