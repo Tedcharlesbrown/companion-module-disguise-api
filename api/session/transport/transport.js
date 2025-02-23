@@ -197,24 +197,35 @@ export const TRANSPORT_ACTIONS = {
             TRANSPORT_FIELDS.TargetTransport,
             TRANSPORT_FIELDS.PlayMode,
             TRANSPORT_FIELDS.GoToCueType,
+            TRANSPORT_FIELDS.NOTE_TrackSelect,
+            TRANSPORT_FIELDS.NOTE_GoToTarget,
             TRANSPORT_FIELDS.TAG_GoToTagType,
             TRANSPORT_FIELDS.TAG_AllowGlobalJump,
+            TRANSPORT_FIELDS.CUE_GoToTarget,
             TRANSPORT_FIELDS.TIME_GoToTimeType,
             TRANSPORT_FIELDS.TC_IgnoreTag,
-            TRANSPORT_FIELDS.CUE_GoToTarget,
             TRANSPORT_FIELDS.MIDI_GoToTarget,
-            TRANSPORT_FIELDS.NOTE_GoToTarget,
             TRANSPORT_FIELDS.TC_GoToTarget,
             TRANSPORT_FIELDS.TIME_GoToTarget,
             TRANSPORT_FIELDS.FRAME_GoToTarget,
             TRANSPORT_FIELDS.SECTION_GoToTarget,
             TRANSPORT_FIELDS.TRACK_GoToTarget,
         ],
+        subscribe: (action) => {
+            // Subscribe to both cueType and noteTrack changes
+            return [action.options.cueType, action.options.noteTrack]
+        },
         callback: async (action, context, self) => {
-            let address = `/api/session/transport/gototag`
-            let data = {
-                transports: [
-                    {
+            // Always update note choices when callback is triggered
+            updateNoteChoices(action, self)
+            
+            let address
+            let data
+            
+            if (action.options.cueType === 'gototag') {
+                address = `/api/session/transport/gototag`
+                data = {
+                    transports: [{
                         transport: {
                             name: action.options.player,
                             uid: self.getVariableValue(`transport_${action.options.player.replace(/\s+/g, '_')}_uid`)
@@ -223,10 +234,25 @@ export const TRANSPORT_ACTIONS = {
                         value: action.options.tagValue,
                         allowGlobalJump: action.options.allowGlobalJump,
                         playmode: parseInt(action.options.playmode)
-                    }
-                ]
+                    }]
+                }
+            } else if (action.options.cueType === 'gotonote') {
+                address = `/api/session/transport/gotonote`
+                data = {
+                    transports: [{
+                        transport: {
+                            name: action.options.player,
+                            uid: self.getVariableValue(`transport_${action.options.player.replace(/\s+/g, '_')}_uid`)
+                        },
+                        note: action.options.noteValue,
+                        playmode: parseInt(action.options.playmode)
+                    }]
+                }
             }
-            await sendCommand(self, action, address, data)
+            
+            if (address && data) {
+                await sendCommand(self, action, address, data)
+            }
         },
     },   
 }
@@ -234,13 +260,21 @@ export const TRANSPORT_ACTIONS = {
 export function updateTransportChoices(self) {
     const choices = []
     const allCueOptions = []
+    const trackChoices = []
     
-    // First, collect all CUE tags from all tracks
+    // Get all tracks and their choices
     if (self.transport_tracks && self.transport_tracks.result) {
         self.transport_tracks.result.forEach(track => {
             const trackName = track.name ? track.name.replace(/\s+/g, '_') : 'unknown'
-            let tagIndex = 1
             
+            // Add track to track choices
+            trackChoices.push({
+                id: track.name,        // Keep original name for ID
+                label: track.name      // Keep original name for display
+            })
+
+            // Collect CUE tags (existing code)
+            let tagIndex = 1
             while (true) {
                 const tagType = self.getVariableValue(`track_${trackName}_tag${tagIndex}_type`)
                 const tagValue = self.getVariableValue(`track_${trackName}_tag${tagIndex}_value`)
@@ -259,7 +293,7 @@ export function updateTransportChoices(self) {
         })
     }
     
-    // Get all active transports
+    // Get all active transports (existing code)
     if (self.transport_activetransport && self.transport_activetransport.result) {
         self.transport_activetransport.result.forEach(transport => {
             const transportName = transport.name ? transport.name.replace(/\s+/g, '_') : 'unknown'
@@ -272,11 +306,12 @@ export function updateTransportChoices(self) {
         })
     }
 
-    // Update the TargetTransport field definition with new choices
+    // Update all field choices
     TRANSPORT_FIELDS.TargetTransport.choices = choices
-    
-    // Update CUE choices directly
     TRANSPORT_FIELDS.CUE_GoToTarget.choices = allCueOptions
+    TRANSPORT_FIELDS.NOTE_TrackSelect.choices = trackChoices  // Make sure this is being set
+
+    self.log('debug', `Track choices: ${JSON.stringify(trackChoices)}`)  // Debug log to verify
 
     // Re-initialize actions to apply the new choices
     getActionDefinitions(self)
@@ -287,4 +322,39 @@ export function updateCueChoices(action) {
     // No need to update choices based on transport selection anymore
     // The choices are now always all available CUE tags
     return
+}
+
+// Function to update note choices based on selected track
+export function updateNoteChoices(action, self) {
+    if (action.options.cueType === 'gotonote' && action.options.noteTrack) {
+        const noteChoices = []
+        
+        // Find the track's annotations in transport_annotations
+        if (self.transport_annotations && self.transport_annotations.result) {
+            const trackAnnotations = self.transport_annotations.result.find(
+                track => track.name === action.options.noteTrack
+            )
+
+            self.log('debug', `Found track annotations for ${action.options.noteTrack}:`, JSON.stringify(trackAnnotations))
+
+            if (trackAnnotations?.annotations?.notes) {
+                trackAnnotations.annotations.notes.forEach(note => {
+                    noteChoices.push({
+                        id: note.text,
+                        label: `${note.text} (${note.time}s)`
+                    })
+                })
+            }
+        }
+
+        self.log('debug', `Setting note choices:`, JSON.stringify(noteChoices))
+        
+        // Update the field definition
+        TRANSPORT_FIELDS.NOTE_GoToTarget.choices = noteChoices
+        
+        // Force a refresh of the action definitions
+        self.setActionDefinitions(self.getActionDefinitions())
+    } else {
+        TRANSPORT_FIELDS.NOTE_GoToTarget.choices = []
+    }
 }

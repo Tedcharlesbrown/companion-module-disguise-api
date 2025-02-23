@@ -107,14 +107,21 @@ export const TRANSPORT_FIELDS = {
         useVariables: true,
     },
     /* ------------------------------- GO TO NOTE ------------------------------- */
-    NOTE_GoToTarget: {
-        type: 'textinput',
-        label: 'Note',
-        id: 'noteTarget',
+    NOTE_TrackSelect: {
+        type: 'dropdown',
+        label: 'Track',
+        id: 'noteTrack',
         default: '',
-        isVisible: (options) => options.cueType === 'gotonote',
-        regex: '/.*/',
-        useVariables: true,
+        choices: [], // Will be populated with all tracks
+        isVisible: (options) => options.cueType === 'gotonote'
+    },
+    NOTE_GoToTarget: {
+        type: 'dropdown',
+        label: 'Note',
+        id: 'noteValue',
+        default: '',
+        choices: [], // Will be populated based on selected track
+        isVisible: (options) => options.cueType === 'gotonote' && options.noteTrack
     },
 
     /* -------------------------------------------------------------------------- */
