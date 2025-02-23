@@ -6,62 +6,131 @@ import { defineVariables, updateVariables } from './variables.js'
 import net from 'net';
 
 class DisguiseRestInstance extends InstanceBase {
-	async configUpdated(config) {
-		this.config = config
-		getActionDefinitions(this)
-		await this.updateData() // Update data when config is updated
-
-		if (this.config.polling) {
-			this.startPolling()
-		} else {
-			this.stopPolling()
-		}
+	constructor(internal) {
+		super(internal)
+		this.config = {}
+		this.log('debug', 'Constructor initialized')
+		this.intervalId = null
+		this.isConnected = false
 	}
 
 	async init(config) {
-		this.config = config;
-		this.updateStatus(InstanceStatus.Connecting); // Set connecting status initially
-	
-		const isConnected = await this.checkConnection(this.config.ipaddress);
-	
-		if (isConnected) {
-			this.updateStatus(InstanceStatus.Ok);
-			this.log('info', `Successfully connected to Disguise at ${this.config.ipaddress}`);
-		} else {
-			this.updateStatus(InstanceStatus.ConnectionFailure);
-			this.log('error', 'Failed to connect to Disguise');
-		}
-	
-		await defineVariables(this); // Define initial variables on init
-		await updateVariables(this);
-		getActionDefinitions(this);
-	
-		if (this.config.polling) {
-			this.startPolling();
+		try {
+			this.log('debug', 'Starting module initialization')
+			
+			// Set default config if none exists
+			this.config = config || {
+				ipaddress: '127.0.0.1',
+				polling: false,
+				polling_interval: 1000
+			}
+
+			this.log('debug', `Initial config loaded`)
+
+			// Start with ConnectionFailure status since we haven't connected yet
+			this.updateStatus(InstanceStatus.ConnectionFailure, 'Not connected to Disguise')
+			
+			// Set up initial empty definitions
+			this.setActionDefinitions({})
+			this.setVariableDefinitions([])
+			
+			this.log('debug', 'Module initialized successfully')
+		} catch (error) {
+			this.log('error', `Initialization error: ${error.toString()}`)
+			this.updateStatus(InstanceStatus.UnknownError, error.toString())
 		}
 	}
-	
+
+	async configUpdated(config) {
+		this.log('debug', 'Config update started')
+		
+		try {
+			this.config = config
+			this.updateStatus(InstanceStatus.Connecting)
+
+			// Stop existing polling if any
+			if (this.intervalId) {
+				this.stopPolling()
+			}
+
+			// Only try to connect if we have an IP address
+			if (this.config.ipaddress) {
+				try {
+					const connected = await this.checkConnection(this.config.ipaddress)
+					this.log('debug', `Connection check result: ${connected}`)
+					
+					if (connected) {
+						this.isConnected = true
+						this.updateStatus(InstanceStatus.Ok)
+						// Don't load actions/variables until we know we're connected
+						this.initializeActions()
+					} else {
+						this.isConnected = false
+						this.updateStatus(InstanceStatus.ConnectionFailure, 'Could not connect to Disguise')
+					}
+				} catch (error) {
+					this.isConnected = false
+					this.log('error', `Connection error: ${error.toString()}`)
+					this.updateStatus(InstanceStatus.ConnectionFailure, 'Connection failed')
+				}
+			} else {
+				this.updateStatus(InstanceStatus.BadConfig, 'IP Address not set')
+			}
+
+			// Only start polling if we're connected and polling is enabled
+			if (this.isConnected && this.config.polling) {
+				this.startPolling()
+			}
+		} catch (error) {
+			this.log('error', `Config update error: ${error.toString()}`)
+			this.updateStatus(InstanceStatus.UnknownError, error.toString())
+		}
+	}
+
+	initializeActions() {
+		try {
+			// Initialize basic actions that don't require API calls
+			const basicActions = {
+				// Add your basic actions here
+				restart: {
+					name: 'Restart',
+					options: [],
+					callback: () => {
+						this.log('info', 'Restart action triggered')
+					},
+				},
+				// Add more basic actions as needed
+			}
+			this.setActionDefinitions(basicActions)
+		} catch (error) {
+			this.log('error', `Action initialization error: ${error.toString()}`)
+		}
+	}
+
 	checkConnection(ip) {
-		this.log('debug', "Connecting to Disguise");
+		this.log('debug', `Checking connection to ${ip}`)
 		return new Promise((resolve) => {
-			const socket = new net.Socket();
-			socket.setTimeout(5000);	// 5 second timeout
+			const socket = new net.Socket()
+			socket.setTimeout(2000) // Shorter timeout for initial check
 
 			socket.connect(80, ip, () => {
-				socket.end();
-				resolve(true);
-			});
-	
-			socket.on('error', () => {
-				socket.destroy();
-				resolve(false);
-			});
-	
+				this.log('debug', 'Connection successful')
+				socket.end()
+				resolve(true)
+			})
+
+			socket.on('error', (err) => {
+				this.log('warning', `Connection error: ${err.toString()}`)
+				socket.destroy()
+				resolve(false)
+			})
+
 			socket.on('timeout', () => {
-				socket.destroy();
-				resolve(false);
-			});
-		});
+				this.log('warning', 'Connection timeout')
+				socket.destroy()
+				resolve(false)
+			})
+		})
 	}
 
 	async updateData() {
