@@ -320,12 +320,18 @@ export const TRANSPORT_ACTIONS = {
 export function updateTransportChoices(self) {
     // Get all transport variables
     const choices = []
-    let index = 1
     
-    while (self.getVariableValue(`transport${index}_name`)) {
-        const transportName = self.getVariableValue(`transport${index}_name`)
-        choices.push({ id: transportName, label: transportName })
-        index++
+    // Get all active transports from the transport variables
+    if (self.transport_activetransport && self.transport_activetransport.result) {
+        self.transport_activetransport.result.forEach(transport => {
+            const transportName = transport.name ? transport.name.replace(/\s+/g, '_') : 'unknown'
+            if (self.getVariableValue(`transport_${transportName}_name`)) {
+                choices.push({ 
+                    id: transport.name, // Keep the original name for the ID
+                    label: transport.name // Keep the original name for the label
+                })
+            }
+        })
     }
 
     // Update the TargetTransport field definition with new choices
