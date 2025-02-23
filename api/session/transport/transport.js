@@ -211,124 +211,62 @@ export const TRANSPORT_ACTIONS = {
             TRANSPORT_FIELDS.TRACK_GoToTarget,
         ],
         callback: async (action, context, self) => {
-            // Resolve Companion variables before using them
-            const cueType = action.options.cueType;
-            const tagType = action.options.tagType;
-            const allowGlobalJump = action.options.allowGlobalJump;
-            const ignoreTags = action.options.ignoreTags;
-            const timeType = action.options.timeType;
-            const playmode = action.options.playmode;
-            const player = await self.parseVariablesInString(action.options.player);
-            const cueTarget = await self.parseVariablesInString(action.options.cueTarget);
-            const midiTarget = await self.parseVariablesInString(action.options.midiTarget);
-            const timecodeTarget = await self.parseVariablesInString(action.options.timecodeTarget);
-            const noteTarget = await self.parseVariablesInString(action.options.noteTarget);
-            const sectionTarget = await self.parseVariablesInString(action.options.sectionTarget);
-            const timeTarget = await self.parseVariablesInString(action.options.timeTarget);
-            const frameTarget = await self.parseVariablesInString(action.options.frameTarget);
-    
-            // Set initial address
-            let address = `/api/session/transport`;
-            let json = { transportName: player };
-    
-            // Parse through user options
-            switch (cueType) {
-                case 'gototag':
-                    address = `${address}/gototag`;
-                    json.type = tagType;
-                    json.allowGlobalJump = allowGlobalJump;
-                    switch (tagType) {
-                        case 'CUE':
-                            json.value = cueTarget;
-                            break;
-                        case 'MIDI':
-                            json.value = midiTarget;
-                            break;
-                        case 'TC':
-                            json.value = timecodeTarget;
-                            break;
-                        default:
-                            self.log('error', `Invalid tagType ${tagType}`);
-                            self.updateStatus(InstanceStatus.UnknownError, `Invalid tagType ${tagType}`);
-                            return;
+            let address = `/api/session/transport/gototag`
+            let data = {
+                transports: [
+                    {
+                        transport: {
+                            name: action.options.player,
+                            uid: self.getVariableValue(`transport_${action.options.player.replace(/\s+/g, '_')}_uid`)
+                        },
+                        type: action.options.tagType,
+                        value: action.options.tagValue,
+                        allowGlobalJump: action.options.allowGlobalJump,
+                        playmode: action.options.playmode
                     }
-                    break;
-                case 'gotonote':
-                    address = `${address}/gotonote`;
-                    json.note = noteTarget;
-                    break;
-                case 'gotosection':
-                    address = `${address}/gotosection`;
-                    json.section = sectionTarget;
-                    break;
-                case 'gototime':
-                    switch (timeType) {
-                        case 'timecode':
-                            address = `${address}/gototimecode`;
-                            json.timecode = timecodeTarget;
-                            json.ignoreTags = ignoreTags;
-                            break;
-                        case 'seconds':
-                            address = `${address}/gototime`;
-                            json.time = timeTarget;
-                            break;
-                        case 'frame':
-                            address = `${address}/gotoframe`;
-                            json.frame = frameTarget;
-                            break;
-                        default:
-                            self.log('error', `Invalid timeType ${timeType}`);
-                            self.updateStatus(InstanceStatus.UnknownError, `Invalid timeType ${timeType}`);
-                            return;
-                    }
-                    break;
-                default:
-                    self.log('error', `Invalid cueType ${cueType}`);
-                    self.updateStatus(InstanceStatus.UnknownError, `Invalid cueType ${cueType}`);
-                    return;
+                ]
             }
-    
-            // Convert playmode to integer
-            let playmodeInt = 0;
-            switch (playmode) {
-                case PLAY_MODES[0].id:
-                    playmodeInt = 1;
-                    break;
-                case PLAY_MODES[1].id:
-                    playmodeInt = 2;
-                    break;
-                case PLAY_MODES[2].id:
-                    playmodeInt = 3;
-                    break;
-                case PLAY_MODES[3].id:
-                    playmodeInt = 4;
-                    break;
-                default:
-                    self.log('error', `Invalid playMode ${playmode}`);
-                    self.updateStatus(InstanceStatus.UnknownError, `Invalid playMode ${playmode}`);
-                    return;
-            }
-    
-            json.playmode = playmodeInt;
-
-            await sendCommand(self, action, address, createTransportJSON(json));
-            self.log('info', `Sent go to command: Transport: ${player}, Type: ${cueType}, Target: ${cueTarget}`);
-        }
+            await sendCommand(self, action, address, data)
+        },
     },   
 }
 
 export function updateTransportChoices(self) {
-    // Get all transport variables
     const choices = []
+    const allCueOptions = []
     
-    // Get all active transports from the transport variables
+    // First, collect all CUE tags from all tracks
+    if (self.transport_tracks && self.transport_tracks.result) {
+        self.transport_tracks.result.forEach(track => {
+            const trackName = track.name ? track.name.replace(/\s+/g, '_') : 'unknown'
+            let tagIndex = 1
+            
+            while (true) {
+                const tagType = self.getVariableValue(`track_${trackName}_tag${tagIndex}_type`)
+                const tagValue = self.getVariableValue(`track_${trackName}_tag${tagIndex}_value`)
+                
+                if (!tagType || !tagValue) break
+                
+                if (tagType === 'CUE') {
+                    allCueOptions.push({
+                        id: tagValue,
+                        label: `${tagValue} (${track.name})`
+                    })
+                }
+                
+                tagIndex++
+            }
+        })
+    }
+    
+    // Get all active transports
     if (self.transport_activetransport && self.transport_activetransport.result) {
         self.transport_activetransport.result.forEach(transport => {
             const transportName = transport.name ? transport.name.replace(/\s+/g, '_') : 'unknown'
             if (self.getVariableValue(`transport_${transportName}_name`)) {
                 choices.push({ 
-                    id: transport.name, // Keep the original name for the ID
-                    label: transport.name // Keep the original name for the label
+                    id: transport.name,
+                    label: transport.name
                 })
             }
         })
@@ -336,7 +274,17 @@ export function updateTransportChoices(self) {
 
     // Update the TargetTransport field definition with new choices
     TRANSPORT_FIELDS.TargetTransport.choices = choices
+    
+    // Update CUE choices directly
+    TRANSPORT_FIELDS.CUE_GoToTarget.choices = allCueOptions
 
     // Re-initialize actions to apply the new choices
     getActionDefinitions(self)
+}
+
+// Simplified updateCueChoices since we're showing all CUE tags
+export function updateCueChoices(action) {
+    // No need to update choices based on transport selection anymore
+    // The choices are now always all available CUE tags
+    return
 }

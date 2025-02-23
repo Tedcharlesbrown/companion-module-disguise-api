@@ -89,13 +89,12 @@ export const TRANSPORT_FIELDS = {
     },
     /* -------------------------------- GO TO CUE ------------------------------- */
     CUE_GoToTarget: {
-        type: 'textinput',
-        label: 'Cue',
-        id: 'cueTarget',
+        type: 'dropdown',
+        label: 'Cue Value',
+        id: 'tagValue',
         default: '',
-        isVisible: (options) => options.cueType === 'gototag' && options.tagType === 'CUE',
-        // regex: '/^\\d*(\\.\\d+)?$/',
-        useVariables: true,
+        choices: [], // Will be populated dynamically
+        isVisible: (options) => options.cueType === 'gototag' && options.tagType === 'CUE'
     },
     /* ------------------------------- GO TO MIDI ------------------------------- */
     MIDI_GoToTarget: {
