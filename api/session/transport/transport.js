@@ -222,7 +222,7 @@ export const TRANSPORT_ACTIONS = {
                         type: action.options.tagType,
                         value: action.options.tagValue,
                         allowGlobalJump: action.options.allowGlobalJump,
-                        playmode: action.options.playmode
+                        playmode: parseInt(action.options.playmode)
                     }
                 ]
             }

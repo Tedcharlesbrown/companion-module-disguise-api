@@ -1,8 +1,8 @@
 export const PLAY_MODES = [
-    { id: 'play', label: 'Play' },
-    { id: 'playSection', label: 'Play Section' },
-    { id: 'loop', label: 'Loop Section' },
-    { id: 'stop', label: 'Stop' },
+    { id: '1', label: 'Play' },
+    { id: '2', label: 'Play Section' },
+    { id: '3', label: 'Loop Section' },
+    { id: '4', label: 'Stop' },
 ]
 
 export const TRANSPORT_COMMANDS = [
