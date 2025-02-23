@@ -89,19 +89,8 @@ class DisguiseRestInstance extends InstanceBase {
 
 	initializeActions() {
 		try {
-			// Initialize basic actions that don't require API calls
-			const basicActions = {
-				// Add your basic actions here
-				restart: {
-					name: 'Restart',
-					options: [],
-					callback: () => {
-						this.log('info', 'Restart action triggered')
-					},
-				},
-				// Add more basic actions as needed
-			}
-			this.setActionDefinitions(basicActions)
+			// Call getActionDefinitions directly with this instance
+			getActionDefinitions(this)
 		} catch (error) {
 			this.log('error', `Action initialization error: ${error.toString()}`)
 		}
