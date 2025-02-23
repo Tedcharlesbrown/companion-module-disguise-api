@@ -1,54 +1,94 @@
 export async function fetchTransportVariableDefinitions(self, data) {
-    const transports = data[0].result
+    const [activetransport, tracks] = data
     const variableDefinitions = []
 
-    transports.forEach((transport, index) => {
-        const transportIndex = index + 1
-        variableDefinitions.push(
-            { variableId: `transport${transportIndex}_name`, name: `Transport ${transportIndex} Name` },
-            { variableId: `transport${transportIndex}_engaged`, name: `Transport ${transportIndex} Engaged` },
-            { variableId: `transport${transportIndex}_volume`, name: `Transport ${transportIndex} Volume` },
-            { variableId: `transport${transportIndex}_brightness`, name: `Transport ${transportIndex} Brightness` },
-            { variableId: `transport${transportIndex}_playmode`, name: `Transport ${transportIndex} Play Mode` },
-            { variableId: `transport${transportIndex}_currentTrack`, name: `Transport ${transportIndex} Current Track` },
-            { variableId: `transport${transportIndex}_receivingTimecode`, name: `Transport ${transportIndex} Receiving Timecode` }
-        )
-    })
-    const tracks = data[1].result
+    // Debug logs
+    self.log('debug', 'Active Transport Data: ' + JSON.stringify(activetransport))
+    self.log('debug', 'Tracks Data: ' + JSON.stringify(tracks))
 
-    tracks.forEach((track, index) => {
-        const trackIndex = index + 1; // Use the index from the forEach loop
-        variableDefinitions.push(
-           { variableId: `track${trackIndex}_name`, name: `Track ${trackIndex} Name` }
-        );
-    });
+    // Add variables for each transport using their names
+    if (activetransport && activetransport.result) {
+        for (const transport of activetransport.result) {
+            const transportName = transport.name ? transport.name.replace(/\s+/g, '_') : 'unknown'
+            
+            variableDefinitions.push(
+                { variableId: `transport_${transportName}_name`, name: `Transport ${transport.name}: Name` },
+                { variableId: `transport_${transportName}_uid`, name: `Transport ${transport.name}: UID` },
+                { variableId: `transport_${transportName}_engaged`, name: `Transport ${transport.name}: Engaged` },
+                { variableId: `transport_${transportName}_brightness`, name: `Transport ${transport.name}: Brightness` },
+                { variableId: `transport_${transportName}_volume`, name: `Transport ${transport.name}: Volume` },
+                { variableId: `transport_${transportName}_playmode`, name: `Transport ${transport.name}: Play Mode` },
+                { variableId: `transport_${transportName}_currenttrack_name`, name: `Transport ${transport.name}: Current Track Name` },
+                { variableId: `transport_${transportName}_currenttrack_uid`, name: `Transport ${transport.name}: Current Track UID` },
+                { variableId: `transport_${transportName}_currenttrack_length`, name: `Transport ${transport.name}: Current Track Length` },
+                { variableId: `transport_${transportName}_currenttrack_crossfade`, name: `Transport ${transport.name}: Current Track Crossfade` }
+            )
+        }
+    }
+
+    // Add variables for each track
+    if (tracks && tracks.result && tracks.result.tracks) {
+        for (const track of tracks.result.tracks) {
+            const trackName = track.name ? track.name.replace(/\s+/g, '_') : 'unknown'
+            
+            variableDefinitions.push(
+                { variableId: `track_${trackName}_name`, name: `Track ${track.name}: Name` },
+                { variableId: `track_${trackName}_uid`, name: `Track ${track.name}: UID` },
+                { variableId: `track_${trackName}_length`, name: `Track ${track.name}: Length` },
+                { variableId: `track_${trackName}_currenttime`, name: `Track ${track.name}: Current Time` }
+            )
+        }
+    }
 
     return variableDefinitions
 }
 
-export async function fetchTransportVariableValues(self) {
-    const transports = self.transport_activetransport.result.reverse();
-    const variableValues = {};
+export async function fetchTransportVariableValues(self, data) {
+    const [activetransport, tracks] = data
+    const variableValues = {}
 
-    transports.forEach((transport, index) => {
-        const transportIndex = index + 1;
-        variableValues[`transport${transportIndex}_name`] = transport.name;
-        variableValues[`transport${transportIndex}_engaged`] = transport.engaged;
-        variableValues[`transport${transportIndex}_volume`] = transport.volume;
-        variableValues[`transport${transportIndex}_brightness`] = transport.brightness;
-        variableValues[`transport${transportIndex}_playmode`] = transport.playmode;
-        variableValues[`transport${transportIndex}_currentTrack`] = transport.currentTrack ? transport.currentTrack.name : 'N/A';
-        variableValues[`transport${transportIndex}_receivingTimecode`] = transport.receivingTimecode;
-    });
+    // Set values for each transport
+    if (activetransport && activetransport.result) {
+        for (const transport of activetransport.result) {
+            const transportName = transport.name ? transport.name.replace(/\s+/g, '_') : 'unknown'
+            
+            variableValues[`transport_${transportName}_name`] = transport.name || ''
+            variableValues[`transport_${transportName}_uid`] = transport.uid || ''
+            variableValues[`transport_${transportName}_engaged`] = transport.engaged || false
+            variableValues[`transport_${transportName}_brightness`] = transport.brightness || 0
+            variableValues[`transport_${transportName}_volume`] = transport.volume || 0
+            variableValues[`transport_${transportName}_playmode`] = transport.playmode || ''
 
-    const tracks = self.transport_tracks.result;
+            // Current track information
+            if (transport.currentTrack) {
+                variableValues[`transport_${transportName}_currenttrack_name`] = transport.currentTrack.name || ''
+                variableValues[`transport_${transportName}_currenttrack_uid`] = transport.currentTrack.uid || ''
+            }
 
-    tracks.sort((a, b) => a.name.localeCompare(b.name)); // Sort tracks alphabetically by name
+            // Get track details from setList
+            if (transport.setList && transport.setList.tracks) {
+                const currentTrack = transport.setList.tracks.find(track => 
+                    track.uid === transport.currentTrack?.uid
+                )
+                if (currentTrack) {
+                    variableValues[`transport_${transportName}_currenttrack_length`] = currentTrack.length || 0
+                    variableValues[`transport_${transportName}_currenttrack_crossfade`] = currentTrack.crossfade || ''
+                }
+            }
+        }
+    }
 
-    tracks.forEach((track, index) => {
-        const trackIndex = index + 1;
-        variableValues[`track${trackIndex}_name`] = track.name;
-    });
+    // Set values for each track
+    if (tracks && tracks.result && tracks.result.tracks) {
+        for (const track of tracks.result.tracks) {
+            const trackName = track.name ? track.name.replace(/\s+/g, '_') : 'unknown'
+            
+            variableValues[`track_${trackName}_name`] = track.name || ''
+            variableValues[`track_${trackName}_uid`] = track.uid || ''
+            variableValues[`track_${trackName}_length`] = track.length || ''
+            variableValues[`track_${trackName}_currenttime`] = track.currentTime || ''
+        }
+    }
 
-    return variableValues;
+    return variableValues
 }
