@@ -3,8 +3,8 @@ export async function fetchTransportVariableDefinitions(self, data) {
     const variableDefinitions = []
 
     // Debug logs
-    self.log('debug', 'Active Transport Data: ' + JSON.stringify(activetransport))
-    self.log('debug', 'Tracks Data: ' + JSON.stringify(tracks))
+    // self.log('debug', 'Active Transport Data: ' + JSON.stringify(activetransport))
+    // self.log('debug', 'Tracks Data: ' + JSON.stringify(tracks))
 
     // Add variables for each transport using their names
     if (activetransport && activetransport.result) {

@@ -2,7 +2,7 @@ export async function fetchAnnotationVariableDefinitions(self, data) {
     const variableDefinitions = []
 
     // Debug log the input data
-    self.log('debug', 'Annotation data for variable definitions: ' + JSON.stringify(data))
+    // self.log('debug', 'Annotation data for variable definitions: ' + JSON.stringify(data))
 
     // Handle array of annotation results
     if (data && data.result) {
@@ -11,7 +11,7 @@ export async function fetchAnnotationVariableDefinitions(self, data) {
 
             // Get track name and sanitize it for use in variable names
             const trackName = annotation.name ? annotation.name.replace(/\s+/g, '_') : 'unknown'
-            self.log('debug', `Processing annotations for track: ${trackName}`)
+            // self.log('debug', `Processing annotations for track: ${trackName}`)
 
             // Add variables for notes
             if (annotation.annotations && annotation.annotations.notes) {
@@ -42,7 +42,7 @@ export async function fetchAnnotationVariableDefinitions(self, data) {
     }
 
     // Debug log the output
-    self.log('debug', 'Created variable definitions: ' + JSON.stringify(variableDefinitions))
+    // self.log('debug', 'Created variable definitions: ' + JSON.stringify(variableDefinitions))
     return variableDefinitions
 }
 
@@ -50,7 +50,7 @@ export async function fetchAnnotationVariableValues(self, data) {
     const variableValues = {}
 
     // Debug log the input data
-    self.log('debug', 'Annotation data for variable values: ' + JSON.stringify(data))
+    // self.log('debug', 'Annotation data for variable values: ' + JSON.stringify(data))
 
     // Handle array of annotation results
     if (data && data.result) {
@@ -59,7 +59,7 @@ export async function fetchAnnotationVariableValues(self, data) {
 
             // Get track name and sanitize it for use in variable names
             const trackName = annotation.name ? annotation.name.replace(/\s+/g, '_') : 'unknown'
-            self.log('debug', `Setting values for track: ${trackName}`)
+            // self.log('debug', `Setting values for track: ${trackName}`)
 
             // Set values for notes
             if (annotation.annotations && annotation.annotations.notes) {
@@ -79,6 +79,6 @@ export async function fetchAnnotationVariableValues(self, data) {
     }
 
     // Debug log the output
-    self.log('debug', 'Created variable values: ' + JSON.stringify(variableValues))
+    // self.log('debug', 'Created variable values: ' + JSON.stringify(variableValues))
     return variableValues
 }

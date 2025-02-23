@@ -311,7 +311,7 @@ export function updateTransportChoices(self) {
     TRANSPORT_FIELDS.CUE_GoToTarget.choices = allCueOptions
     TRANSPORT_FIELDS.NOTE_TrackSelect.choices = trackChoices  // Make sure this is being set
 
-    self.log('debug', `Track choices: ${JSON.stringify(trackChoices)}`)  // Debug log to verify
+    // self.log('debug', `Track choices: ${JSON.stringify(trackChoices)}`)
 
     // Re-initialize actions to apply the new choices
     getActionDefinitions(self)
