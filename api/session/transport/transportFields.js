@@ -47,13 +47,12 @@ export const TRANSPORT_FIELDS = {
     },
 
     TargetTransport: {
-        type: 'textinput',
+        type: 'dropdown',
         label: 'Transport',
         id: 'player',
         default: '',
-        tooltip: 'Transport to target, ex: "default"',
-        regex: '/.*/',
-        useVariables: true,
+        choices: [], // Will be populated dynamically
+        tooltip: 'Transport to target',
     },
 
 

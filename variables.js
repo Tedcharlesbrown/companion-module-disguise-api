@@ -2,12 +2,16 @@ import { fetchTransportVariableDefinitions, fetchTransportVariableValues } from 
 import { fetchStatusVariableDefinitions, fetchStatusVariableValues} from './api/session/status/statusVariables.js'
 import { fetchRenderStreamVariableDefinitions } from './api/session/renderstream/renderstreamVariables.js'
 import { sendCommand, getRequest } from './globalFunctions.js'
+import { updateTransportChoices } from './api/session/transport/transport.js'
 
 export async function request_api(self) {
 	self.status_health = await getRequest(`http://${self.config.ipaddress}/api/session/status/health`)
 	self.status_project = await getRequest(`http://${self.config.ipaddress}/api/session/status/project`)
 	self.transport_activetransport = await getRequest(`http://${self.config.ipaddress}/api/session/transport/activetransport`)
 	self.transport_tracks = await getRequest(`http://${self.config.ipaddress}/api/session/transport/tracks`)
+	
+	// Update transport choices after getting new data
+	updateTransportChoices(self)
 }
 
 export async function defineVariables(self) {

@@ -2,6 +2,7 @@ import { sendCommand, getRequest } from '../../../globalFunctions.js'
 import { InstanceStatus } from '@companion-module/base'
 import { TRANSPORT_FIELDS } from './transportFields.js'
 import { PLAY_MODES, TRANSPORT_COMMANDS } from './transportConstants.js';
+import { getActionDefinitions } from '../../../actions.js'
 
 /* -------------------------------------------------------------------------- */
 /*                                  FUNCTIONS                                 */
@@ -314,4 +315,22 @@ export const TRANSPORT_ACTIONS = {
             self.log('info', `Sent go to command: Transport: ${player}, Type: ${cueType}, Target: ${cueTarget}`);
         }
     },   
+}
+
+export function updateTransportChoices(self) {
+    // Get all transport variables
+    const choices = []
+    let index = 1
+    
+    while (self.getVariableValue(`transport${index}_name`)) {
+        const transportName = self.getVariableValue(`transport${index}_name`)
+        choices.push({ id: transportName, label: transportName })
+        index++
+    }
+
+    // Update the TargetTransport field definition with new choices
+    TRANSPORT_FIELDS.TargetTransport.choices = choices
+
+    // Re-initialize actions to apply the new choices
+    getActionDefinitions(self)
 }
